@@ -1886,9 +1886,9 @@ const QDEF=[
  {k:"goals",n:4,t:"อยากได้อะไรจากประกันมากที่สุด",h:"เลือกไม่เกิน 2",type:"multi",max:2,opts:[["save","เก็บเงินพร้อมได้ความคุ้มครอง"],["family","ให้ครอบครัวมั่นคงถ้าเกิดอะไรขึ้นกับเรา"],["medical","ค่ารักษาพยาบาล"],["retire","เงินใช้ตอนเกษียณ"],["tax","ลดหย่อนภาษี"]]},
  {sec:"ส่วนที่ 3: สิ่งที่มีอยู่แล้ว"},
  {k:"health",n:5,t:"สิทธิรักษาพยาบาลที่คุณมีอยู่แล้ว",h:"เลือกได้หลายข้อ · ถ้าจำไม่ได้ เลือก “ไม่ทราบ” หรือ “ไม่แน่ใจ” ได้",type:"multi",excl:["none","unk","unsure"],opts:[["sso","ประกันสังคม"],["uhc","สิทธิหลักประกันสุขภาพแห่งชาติ (บัตรทอง)"],["gov","สวัสดิการข้าราชการ"],["company","ประกันกลุ่มจากบริษัท/นายจ้าง"],["private","ประกันสุขภาพส่วนตัวที่ซื้อเอง"],["none","ไม่มีสิทธิอื่นเพิ่มเติม"],["unk","ไม่ทราบข้อมูล"],["unsure","ไม่แน่ใจ"]]},
- {sec:"ส่วนที่ 4: เงินที่พร้อมจ่าย"},
- {k:"budget",n:6,t:"เบี้ยที่จ่ายไหวต่อปี",h:"เลือก 1",type:"one",opts:[["b1","ต่ำกว่า 20,000"],["b2","20,000–50,000"],["b3","50,000–100,000"],["b4","มากกว่า 100,000"]]},
- {k:"lock",n:7,t:"ยอมผูกเงินนานแค่ไหน",h:"ถามเมื่อเลือก “เก็บเงิน” หรือ “เกษียณ” ในข้อ 4",tip:"surrender",type:"one",cond:()=>hasGoal("save")||hasGoal("retire"),opts:[["y5","ไม่เกิน 5 ปี"],["y10","5–10 ปี"],["y10p","10 ปีขึ้นไป"],["none","ไม่อยากผูกเงิน"]]},
+ {sec:"ส่วนที่ 4: เงินที่พร้อมจ่าย",secX:()=>(hasGoal("save")||hasGoal("retire"))?" และระยะเวลาที่ยอมผูกเงิน":""},
+ {k:"budget",n:6,t:"เบี้ยที่จ่ายไหวต่อปี",h:"เลือก 1",type:"one",opts:[["b1","ต่ำกว่า 20,000"],["b2","20,000–50,000"],["b3","50,000–100,000"],["b4","มากกว่า 100,000"],["unsure","ยังไม่แน่ใจ"]]},
+ {k:"lock",n:7,t:"ยอมผูกเงินนานแค่ไหน",h:"ถามเมื่อเลือก “เก็บเงิน” หรือ “เกษียณ” ในข้อ 4",tip:"lockterm",type:"one",cond:()=>hasGoal("save")||hasGoal("retire"),opts:[["y5","ไม่เกิน 5 ปี"],["y10","5–10 ปี"],["y10p","10 ปีขึ้นไป"],["none","ไม่อยากผูกเงิน"]]},
  {sec:"ส่วนที่ 5: กรมธรรม์เดิม"},
  {k:"has",n:8,t:"ตอนนี้คุณมีกรมธรรม์ประกันชีวิตหรือสุขภาพอยู่แล้วหรือไม่",h:"เลือก 1 · ถ้ามี ระบบจะพาไปกรอกกรมธรรม์เดิมเพื่อวิเคราะห์ส่วนที่ขาด",type:"one",opts:[["yes","มีอยู่แล้ว"],["no","ยังไม่มี"],["unk","ไม่แน่ใจ"]]}
 ];
@@ -1941,7 +1941,7 @@ let incManual=false;
 function applyProfileToPlan(){
   const r=recs();
   F.type=r.kinds.slice(); F.years=r.years; F.sort=r.sort; F.noHq=false; F.range=""; F.minPrem=0; $("fNoHq").checked=false;
-  if(r.budget){ $("budget").value=r.budget; const rg=BUD_RANGES.find(x=>x[0]==="r"+Q.budget.slice(1)); if(rg){ F.range=rg[0]; F.minPrem=rg[2]; $("budget").value=rg[3]; } }
+  if(r.budget){ $("budget").value=r.budget; const rg=BUD_RANGES.find(x=>x[0]==="r"+Q.budget.slice(1)); if(rg){ $("budget").value=rg[3]; } }  /* งบจากคำตอบใช้เป็นเพดานอย่างเดียว ไม่ซ่อนแผนที่เบี้ยถูกกว่า */
   $("fYears").value=F.years; $("fSort").value=F.sort;
   qApplied=qVersion;
 }
@@ -1953,7 +1953,7 @@ function renderProfile(focus){
   };
   let html="", open=false;
   QDEF.forEach(q=>{
-    if(q.sec){ if(open) html+="</div>"; html+=`<div class="card qcard"><h2>${q.sec}</h2>`; open=true; return; }
+    if(q.sec){ if(open) html+="</div>"; html+=`<div class="card qcard"><h2>${q.sec}${q.secX?q.secX():""}</h2>`; open=true; return; }
     if(q.cond&&!q.cond()) return;
     if(q.type==="sub"){
       html+=`<fieldset class="q"><legend><span class="qn">${q.n}</span>${q.t} <small>${q.h}</small></legend>${q.subs.map(sb=>`<div class="qsub">${sb.label}</div><div class="qopts">${sb.opts.map(o=>optHTML(sb.k,"one",o)).join("")}</div>`).join("")}</fieldset>`;
@@ -2058,7 +2058,7 @@ function renderPfSummary(){
 }
 
 /* ===================== ความคุ้มครองที่ยังขาด + จำลองสถานการณ์ (หน้า 4) ===================== */
-const G={coLifeUnk:false,coHealthUnk:false,income:null,incomeSrc:null,debts:0,years:null,other:0,coLife:0,coHealth:0,tHealth:null,ciYears:3,childCost:1000000,wiKids:1,wiDebt:3000000,wiDrop:30,wiRetDebt:0};
+const G={coLifeUnk:false,coHealthUnk:false,coCI:0,coCIUnk:false,income:null,incomeSrc:null,debts:0,years:null,other:0,coLife:0,coHealth:0,tHealth:null,ciYears:3,childCost:1000000,wiKids:1,wiDebt:3000000,wiDrop:30,wiRetDebt:0};
 const incSrc=()=>(typeof Q!=="undefined"&&Q.salary>0)?Q.salary*12:(state.income||0);
 const gv=k=>{
   // รายได้: ซิงก์จากหน้าแรกเสมอ · ถ้าแก้เองในหน้านี้ จะใช้ค่าที่แก้จนกว่าตัวเลขในหน้าแรกจะเปลี่ยน
@@ -2072,9 +2072,9 @@ function gapHealthUnknown(){ const H=Q.health||[]; return !!G.coHealthUnk || (!G
 function gapCalc(o={}){
   const s=pfSums(), income=o.income!==undefined?o.income:gv("income"), years=o.years!==undefined?o.years:gv("years");
   const debts=o.debts!==undefined?o.debts:G.debts, extra=(o.extraNeed||0);
-  const needLife=debts+income*years+G.other+extra, haveLife=G.coLife+s.life;
-  const needHealth=gv("tHealth"), haveHealth=G.coHealth+s.health;
-  const needCI=income*G.ciYears, haveCI=s.ci;
+  const needLife=debts+income*years+G.other+extra, haveLife=(G.coLifeUnk?0:G.coLife)+s.life;
+  const needHealth=gv("tHealth"), haveHealth=(G.coHealthUnk?0:G.coHealth)+s.health;
+  const needCI=income*G.ciYears, haveCI=(G.coCIUnk?0:(G.coCI||0))+s.ci;
   return {income,years,debts,needLife,haveLife,gapLife:Math.max(0,needLife-haveLife),needHealth,haveHealth,gapHealth:Math.max(0,needHealth-haveHealth),needCI,haveCI,gapCI:Math.max(0,needCI-haveCI),prem:s.prem};
 }
 function renderGapInputs(){
@@ -2090,13 +2090,15 @@ function renderGapInputs(){
     <label for="gtHealth">วงเงินค่ารักษาที่อยากมี/ปี</label>
     <select id="gtHealth" data-g="tHealth">${[1000000,3000000,5000000,10000000].map(v=>`<option value="${v}" ${gv("tHealth")===v?"selected":""}>${fmt(v)} บาท</option>`).join("")}</select>
     <div class="hint">ค่าตั้งต้น 3,000,000 บาท (เกณฑ์ประมาณการ ไม่ใช่ข้อมูลจากบริษัท) · เลือกตามระดับห้องพักและโรงพยาบาลที่ต้องการ</div>
-    ${n("gciYears","โรคร้ายแรง: ทุนเท่ากับรายได้กี่ปี",G.ciYears,1,"เกณฑ์ทั่วไป 3 ปีของรายได้ ปรับได้")}`;
+    ${n("gciYears","โรคร้ายแรง: ทุนเท่ากับรายได้กี่ปี",G.ciYears,1,"เกณฑ์ทั่วไป 3 ปีของรายได้ ปรับได้")}
+    ${n("gcoCI","ประกันโรคร้ายแรงจากที่ทำงาน/กลุ่ม (บาท)",G.coCI,50000,"")}<label class="check"><input type="checkbox" data-g="coCIUnk" ${G.coCIUnk?"checked":""}> ไม่ทราบ/ไม่แน่ใจ ว่าที่ทำงานมีให้เท่าไร</label>`;
 }
 function renderGapOut(){
   const r=gapCalc(), s=pfSums();
   const have=[];
-  if(G.coLife) have.push(`ประกันชีวิตจากที่ทำงาน ${fmt(G.coLife)} บาท`);
-  if(G.coHealth) have.push(`ประกันสุขภาพจากสวัสดิการบริษัท ${fmt(G.coHealth)} บาท/ปี`);
+  if(G.coLife&&!G.coLifeUnk) have.push(`ประกันชีวิตจากที่ทำงาน ${fmt(G.coLife)} บาท`);
+  if(G.coHealth&&!G.coHealthUnk) have.push(`ประกันสุขภาพจากสวัสดิการบริษัท ${fmt(G.coHealth)} บาท/ปี`);
+  if(G.coCI&&!G.coCIUnk) have.push(`ประกันโรคร้ายแรงจากที่ทำงาน ${fmt(G.coCI)} บาท`);
   PF.forEach(p=>{ if(+p.cover) have.push(`${p.company}${p.name?" · "+p.name:""} (${PTYPES[p.type][0]}) ${fmt(p.cover)} บาท`); });
   const card=(ico,title,unitTxt,need,hv,gap,unk,sum,btn,hintTxt,how)=>{
     const st=unk?"unk":gap>0?"bad":"ok";
@@ -2113,18 +2115,18 @@ function renderGapOut(){
   const incSrcTxt=G.income!==null?"กรอกเองในหน้านี้":(Q.salary>0?`เงินเดือน ${fmt(Q.salary)} × 12 จากหน้าแรก`:"เงินได้สุทธิจากหน้าแรก");
   const pfRows=key=>PF.filter(p=>+p.cover&&PTYPES[p.type][3]===key).map(p=>L(`${p.company}${p.name?" · "+p.name:""}`,fmt(+p.cover),"กรมธรรม์เดิมของฉัน")).join("");
   const howLife=T("ควรมี (ทุนชีวิต)",L("หนี้สินรวม",fmt(G.debts),"ช่องหนี้สินรวมทางซ้าย")+L(`รายได้ทดแทน ${fmt(r.income)} × ${r.years} ปี`,fmt(r.income*r.years),`รายได้: ${incSrcTxt} · จำนวนปี: ช่องทางซ้าย`)+L("เป้าหมายอื่น",fmt(G.other),"ช่องเป้าหมายอื่นทางซ้าย"),r.needLife)
-    +T("มีอยู่",L("ประกันชีวิตจากที่ทำงาน",fmt(G.coLife),"ช่องทางซ้าย")+pfRows("life"),r.haveLife);
+    +T("มีอยู่",L("ประกันชีวิตจากที่ทำงาน",G.coLifeUnk?"0":fmt(G.coLife),G.coLifeUnk?"ไม่นับ เพราะติ๊กว่าไม่ทราบ":"ช่องทางซ้าย")+pfRows("life"),r.haveLife);
   const howHealth=T("ควรมี (วงเงินค่ารักษา/ปี)",L("วงเงินที่อยากมี",fmt(r.needHealth),"ตัวเลือกทางซ้าย (ค่าตั้งต้น 3,000,000 เป็นเกณฑ์ประมาณการ)"),r.needHealth)
-    +T("มีอยู่",L("สวัสดิการบริษัท",fmt(G.coHealth),"ช่องทางซ้าย")+pfRows("health"),r.haveHealth);
+    +T("มีอยู่",L("สวัสดิการบริษัท",G.coHealthUnk?"0":fmt(G.coHealth),G.coHealthUnk?"ไม่นับ เพราะติ๊กว่าไม่ทราบ":"ช่องทางซ้าย")+pfRows("health"),r.haveHealth);
   const howCI=T("ควรมี (ทุนโรคร้ายแรง)",L(`รายได้ ${fmt(r.income)} × ${G.ciYears} ปี`,fmt(r.needCI),`รายได้: ${incSrcTxt} · จำนวนปี: ช่องทางซ้าย`),r.needCI)
-    +T("มีอยู่",pfRows("ci")||L("ยังไม่มี","0","ไม่พบกรมธรรม์โรคร้ายแรงในหน้ากรมธรรม์เดิม"),r.haveCI);
-  const hUnk=gapHealthUnknown(), lUnk=!!G.coLifeUnk;
-  const allOk=r.gapLife===0&&r.gapHealth===0&&r.gapCI===0&&!hUnk&&!lUnk;
+    +T("มีอยู่",L("ประกันโรคร้ายแรงจากที่ทำงาน",G.coCIUnk?"0":fmt(G.coCI||0),G.coCIUnk?"ไม่นับ เพราะติ๊กว่าไม่ทราบ":"ช่องทางซ้าย")+pfRows("ci"),r.haveCI);
+  const hUnk=gapHealthUnknown(), lUnk=!!G.coLifeUnk, cUnk=!!G.coCIUnk;
+  const allOk=r.gapLife===0&&r.gapHealth===0&&r.gapCI===0&&!hUnk&&!lUnk&&!cUnk;
   $("gapOut").innerHTML=`<h2>ผลวิเคราะห์ความคุ้มครอง <button type="button" class="how" data-how="gap">วิธีคิด</button></h2>
     <div class="gcards">
-      ${card("♥","ชีวิต (ครอบครัว/หนี้)","",r.needLife,r.haveLife,r.gapLife,lUnk,lUnk?"ยังไม่ทราบประกันกลุ่มจากที่ทำงาน จึงยังสรุปไม่ได้ · กรอกในช่องด้านซ้าย":(r.gapLife>0?`ตอนนี้มีทุน ${fmt(r.haveLife)} บาท แต่ครอบครัวและภาระหนี้ต้องการ ${fmt(r.needLife)} บาท → ขาดอีก ${fmt(r.gapLife)} บาท`:`ทุนที่มี ${fmt(r.haveLife)} บาท ครอบคลุมที่ต้องการ ${fmt(r.needLife)} บาทแล้ว`),(r.gapLife>0&&!lUnk)?`<button type="button" class="chip" id="gapToPlan">เลือกแผนชีวิตเพื่อเติมส่วนนี้ →</button>`:"","",howLife)}
-      ${card("✚","ค่ารักษาพยาบาล","/ปี",r.needHealth,r.haveHealth,r.gapHealth,hUnk,hUnk?"ยังไม่ทราบวงเงินสุขภาพที่มี จึงยังสรุปไม่ได้ · กรอกในช่องด้านซ้าย":(r.gapHealth>0?`ตอนนี้มีวงเงิน ${fmt(r.haveHealth)} บาท/ปี แต่อยากมี ${fmt(r.needHealth)} บาท/ปี → ขาดอีก ${fmt(r.gapHealth)} บาท`:`วงเงิน ${fmt(r.haveHealth)} บาท/ปี ถึงที่ต้องการ ${fmt(r.needHealth)} บาทแล้ว`),"",r.gapHealth>0&&!hUnk?"ยังไม่มีแผนสุขภาพที่มีเบี้ยจากบริษัทในเครื่องมือนี้":"",howHealth)}
-      ${card("!","โรคร้ายแรง","",r.needCI,r.haveCI,r.gapCI,false,r.gapCI>0?`ตอนนี้มีทุน ${fmt(r.haveCI)} บาท แต่ควรมี ${fmt(r.needCI)} บาท (รายได้ ${G.ciYears} ปี) → ขาดอีก ${fmt(r.gapCI)} บาท`:`ทุนโรคร้ายแรง ${fmt(r.haveCI)} บาท ถึงที่ต้องการแล้ว`,"",r.gapCI>0?"ยังไม่มีแผนโรคร้ายแรงในเครื่องมือนี้":"",howCI)}
+      ${card("♥","ชีวิต (ครอบครัว/หนี้)","",r.needLife,r.haveLife,r.gapLife,false,(r.gapLife>0?`ตอนนี้มีทุน ${fmt(r.haveLife)} บาท แต่ครอบครัวและภาระหนี้ต้องการ ${fmt(r.needLife)} บาท → ขาดอีก ${fmt(r.gapLife)} บาท`:`ทุนที่มี ${fmt(r.haveLife)} บาท ครอบคลุมที่ต้องการ ${fmt(r.needLife)} บาทแล้ว`),r.gapLife>0?`<button type="button" class="chip" id="gapToPlan">เลือกแผนชีวิตเพื่อเติมส่วนนี้ →</button>`:"",lUnk?"ไม่นับประกันจากที่ทำงาน เพราะติ๊กว่าไม่ทราบตัวเลข · ถ้ามีจริง ส่วนที่ขาดจะน้อยกว่านี้":"",howLife)}
+      ${card("✚","ค่ารักษาพยาบาล","/ปี",r.needHealth,r.haveHealth,r.gapHealth,false,(r.gapHealth>0?`ตอนนี้มีวงเงิน ${fmt(r.haveHealth)} บาท/ปี แต่อยากมี ${fmt(r.needHealth)} บาท/ปี → ขาดอีก ${fmt(r.gapHealth)} บาท`:`วงเงิน ${fmt(r.haveHealth)} บาท/ปี ถึงที่ต้องการ ${fmt(r.needHealth)} บาทแล้ว`),"",[G.coHealthUnk?"ไม่นับสวัสดิการสุขภาพจากบริษัท เพราะติ๊กว่าไม่ทราบตัวเลข · ถ้ามีจริง ส่วนที่ขาดจะน้อยกว่านี้":hUnk?"ยังไม่ได้กรอกวงเงินสวัสดิการสุขภาพจากบริษัท จึงยังไม่นับส่วนนั้น · ถ้ามีจริง ส่วนที่ขาดจะน้อยกว่านี้":"",r.gapHealth>0?"ยังไม่มีแผนสุขภาพที่มีเบี้ยจากบริษัทในเครื่องมือนี้":""].filter(Boolean).join(" · "),howHealth)}
+      ${card("!","โรคร้ายแรง","",r.needCI,r.haveCI,r.gapCI,false,r.gapCI>0?`ตอนนี้มีทุน ${fmt(r.haveCI)} บาท แต่ควรมี ${fmt(r.needCI)} บาท (รายได้ ${G.ciYears} ปี) → ขาดอีก ${fmt(r.gapCI)} บาท`:`ทุนโรคร้ายแรง ${fmt(r.haveCI)} บาท ถึงที่ต้องการแล้ว`,"",[cUnk?"ไม่นับประกันจากที่ทำงาน เพราะติ๊กว่าไม่ทราบตัวเลข · ถ้ามีจริง ส่วนที่ขาดจะน้อยกว่านี้":"",r.gapCI>0?"ยังไม่มีแผนโรคร้ายแรงในเครื่องมือนี้":""].filter(Boolean).join(" · "),howCI)}
     </div>
     <details class="gc-have"><summary>ความคุ้มครองที่มีอยู่ (${have.length} รายการ)</summary>${have.length?`<ul class="recs">${have.map(x=>`<li>${x}</li>`).join("")}</ul>`:'<div class="hint">ยังไม่มีข้อมูล · เพิ่มกรมธรรม์ในหน้า “กรมธรรม์เดิมของฉัน” หรือกรอกประกันจากที่ทำงานทางซ้าย</div>'}</details>
     ${allOk?`<div class="note ok"><b>ความคุ้มครองเพียงพอตามเกณฑ์ที่ตั้งไว้</b> · ไม่แนะนำให้ซื้อประกันเพิ่มโดยไม่จำเป็น ถ้าซื้อก็ควรซื้อเพื่อเป้าหมายอื่น เช่น ออมเงินหรือเกษียณ ไม่ใช่เพื่อความคุ้มครอง</div>`:`<div class="note"><b>ควรเติมตรงจุดที่ขาดก่อน</b> · ประกันสะสมทรัพย์ให้ทุนชีวิตต่ำเมื่อเทียบกับเบี้ย การเติมความคุ้มครองชีวิตที่ขาดมักใช้แบบคุ้มครองได้คุ้มกว่า</div>`}
@@ -2174,6 +2176,7 @@ const GLOSS={
   cashback:["เงินคืนระหว่างสัญญา","Cash back / Survival benefit","เงินที่บริษัทจ่ายคืนให้ระหว่างสัญญาเมื่อคุณยังมีชีวิตอยู่ มักระบุเป็น % ของทุนประกันในแต่ละปี"],
   maturity:["เงินครบกำหนดสัญญา","Maturity benefit","เงินก้อนที่ได้รับเมื่อสัญญาครบกำหนดและคุณยังมีชีวิตอยู่"],
   dividend:["เงินปันผล","Par / Non-par","แผนแบบมีเงินปันผล (Par) มีโอกาสได้เงินเพิ่ม แต่ไม่รับประกันและบริษัทเป็นผู้กำหนดตามผลประกอบการ เครื่องมือนี้ไม่นับเงินปันผลในผลตอบแทน ส่วนแบบไม่มีปันผล (Non-par) ได้ตามที่ระบุเท่านั้น"],
+  lockterm:["ยอมผูกเงินนานแค่ไหน","Lock-in period","ระยะเวลาที่คุณยอมจ่ายเบี้ยต่อเนื่องและไม่ถอนเงินออกก่อนครบสัญญา เช่น ผูก 5 ปี = จ่ายเบี้ยครบ 5 ปีแล้วรอรับเงินตามสัญญา ถ้ายกเลิกก่อนกำหนด จะได้เงินคืนตาม “มูลค่าเวนคืน” ซึ่งช่วงปีแรกๆ มักต่ำกว่าเบี้ยที่จ่ายไป ระบบใช้คำตอบนี้กรองแผนที่ระยะจ่ายเบี้ยไม่เกินที่คุณรับได้ ถ้าตอบว่าไม่อยากผูก ระบบจะไม่แนะนำแผนสะสมทรัพย์"],
   surrender:["มูลค่าเวนคืน","Surrender value","เงินที่ได้คืนเมื่อยกเลิกกรมธรรม์ก่อนครบสัญญา มักต่ำกว่าเบี้ยที่จ่ายไปแล้วโดยเฉพาะช่วงแรก"],
   ul:["ยูนิตลิงค์","Unit-linked","ประกันชีวิตที่นำเบี้ยส่วนหนึ่งไปลงทุนในกองทุน ผลตอบแทนไม่รับประกัน ลดหย่อนภาษีได้เฉพาะส่วนค่าใช้จ่ายของกรมธรรม์ ไม่ใช่เบี้ยทั้งก้อน"],
   coi:["ค่าการประกันภัย","Cost of insurance (COI)","ค่าความเสี่ยงชีวิตที่บริษัทหักจากเงินลงทุนในยูนิตลิงค์เพื่อให้ความคุ้มครอง เพิ่มขึ้นตามอายุ"],
@@ -2955,7 +2958,7 @@ function resetAll(){
   try{ localStorage.removeItem(AUTO_KEY); }catch(e){}
   Object.assign(Q,{age:0,dep:[],cond:[],goals:[],health:[],has:"",budget:"",lock:"",inc:"",salary:0});
   state.income=0; incManual=false; $("income").value=0; $("salary").value="";
-  Object.assign(G,{debts:0,other:0,coLife:0,coHealth:0,coLifeUnk:false,coHealthUnk:false,income:null,years:null,tHealth:null});
+  Object.assign(G,{debts:0,other:0,coLife:0,coHealth:0,coCI:0,coCIUnk:false,coLifeUnk:false,coHealthUnk:false,income:null,years:null,tHealth:null});
   Object.assign(CALC,{life:0,health:0,ann:0,seeded:false,man:{life:false,health:false,ann:false}}); calcSelKey=""; qVersion++; resetArm=false; lastSaved=null; renderProfile(); renderNav(); refresh(); renderProg(); goTabGlobal("room");
 }
 let goTabGlobal=()=>{};
